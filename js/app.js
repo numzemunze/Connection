@@ -1,6 +1,7 @@
 import { PulseSensor } from './pulse.js';
 import * as store from './store.js';
 import { generatePlayers, makeIntervals, agoText } from './players.js';
+import * as sound from './sound.js';
 
 const $ = s => document.querySelector(s);
 const show = id => {
@@ -14,15 +15,25 @@ let players = [];
 let cardPlayer = null;
 
 /* ---------- Replay a beat pattern as a pulsing dot ---------- */
-function pulseLoop(el, intervals) {
+// NEW: optional sound. Each wrap = one beat.
+function pulseLoop(el, intervals, { sound: withSound = false } = {}) {
   let phase = 0, last = performance.now(), i = 0;
+  let lastBeatAt = 0;
   (function tick(now) {
     if (!el.isConnected) return;
     requestAnimationFrame(tick);
     const dt = (now - last) / 1000; last = now;
     const period = intervals[i % intervals.length] / 1000;
     phase += dt / period;
-    if (phase >= 1) { phase -= 1; i++; }
+    if (phase >= 1) {
+      phase -= 1;
+      i++;
+      // NEW: fire the thump once per wrap, throttled to 250 ms minimum.
+      if (withSound && now - lastBeatAt > 250) {
+        lastBeatAt = now;
+        sound.beat(1);
+      }
+    }
     // Sharp attack, soft decay — feels like a heartbeat.
     const s = 1 + 0.55 * Math.exp(-phase * 7);
     el.style.transform = `scale(${s.toFixed(3)})`;
@@ -37,6 +48,10 @@ async function startRitual() {
   const fill = $('#ring-fill');
   const bpmEl = $('#ritual-bpm');
   const hint = $('#ritual-hint');
+
+  // NEW: unlock AudioContext on the first user gesture.
+  sound.init();
+  sound.resume();
 
   fill.style.strokeDasharray = CIRC;
   fill.style.strokeDashoffset = CIRC;
@@ -73,7 +88,6 @@ async function startRitual() {
 async function finishRitual(collected, bpm) {
   sensor.stop();
 
-  // Fall back to a synthesised rhythm if the camera didn't yield enough beats.
   const intervals = collected.length >= 8
     ? collected.slice(-24)
     : makeIntervals(bpm || 68, 24, Date.now() & 0xffff);
@@ -102,7 +116,8 @@ async function finishRitual(collected, bpm) {
 /* ---------- 2. SIGNED ---------- */
 function enterSigned() {
   show('#s-signed');
-  pulseLoop($('#main-dot'), signature.intervals);
+  // NEW: the main dot now carries the beat audibly.
+  pulseLoop($('#main-dot'), signature.intervals, { sound: true });
   $('#to-list').onclick = openList;
 }
 
@@ -131,7 +146,46 @@ function openList() {
     list.appendChild(row);
   }
 
+  // NEW: phantom row, at most once per 24 h.
+  const now = Date.now();
+  if (now - store.getPhantomLast() > store.DAY_MS) {
+    store.setPhantomLast(now);
+    const delay = 1500 + Math.random() * 2500;
+    setTimeout(() => spawnPhantom(list), delay);
+  }
+
   show('#s-list');
+}
+
+/* ---------- NEW: phantom row ---------- */
+function spawnPhantom(list) {
+  if (!document.body.contains(list)) return;
+  const row = document.createElement('div');
+  row.className = 'row phantom';
+  row.innerHTML = `
+    <span class="r-dot dead"></span>
+    <span class="r-num">— —</span>
+    <span class="r-bpm">— · just now</span>`;
+  row.onclick = () => openPhantomCard();
+  list.appendChild(row);
+  setTimeout(() => row.remove(), 1000);
+}
+
+function openPhantomCard() {
+  cardPlayer = null;
+  $('#card-num').textContent = '— —';
+
+  const dot = $('#card-dot');
+  dot.classList.add('flat');
+  dot.style.transform = '';
+
+  $('#card-body').innerHTML = `
+    <div><div class="k">STATUS</div><div class="v">dead</div></div>
+    <div><div class="k">RHYTHM</div><div class="v">0</div></div>
+    <div><div class="k">LAST BEAT</div><div class="v">just now</div></div>
+    <div class="phrase">"You are next."</div>`;
+
+  show('#s-card');
 }
 
 /* ---------- 4. CARD ---------- */
@@ -152,7 +206,7 @@ function openCard(p) {
   `;
 
   if (p.status === 'alive') {
-    pulseLoop(dot, makeIntervals(p.bpm, 20, p.number));
+    pulseLoop(dot, makeIntervals(p.bpm, 20, p.number), { sound: true });
     dot.addEventListener('pointerdown', onConnect);
     dot.addEventListener('pointerup', onDisconnect);
     dot.addEventListener('pointercancel', onDisconnect);
@@ -165,10 +219,13 @@ let connectTimer = null;
 function onConnect() {
   if (!cardPlayer || cardPlayer.status !== 'alive') return;
   const dot = $('#card-dot');
-  // Echo: the other dot drifts in with a 400 ms delay and softer attack.
+  // Echo: the other dot drifts in with a 400 ms delay.
   clearTimeout(connectTimer);
   connectTimer = setTimeout(() => {
-    if (dot.isConnected) pulseLoop(dot, makeIntervals(cardPlayer.bpm, 20, cardPlayer.number + 7));
+    if (dot.isConnected) {
+      pulseLoop(dot, makeIntervals(cardPlayer.bpm, 20, cardPlayer.number + 7),
+                { sound: true });
+    }
   }, 400);
 }
 function onDisconnect() {
