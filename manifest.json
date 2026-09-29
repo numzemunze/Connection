@@ -1,6 +1,6 @@
 {
-  "name": "Connect Life",
-  "short_name": "Connect",
+  "name": "Connection",
+  "short_name": "Connection",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#000000",
