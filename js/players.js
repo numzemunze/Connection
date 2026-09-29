@@ -74,6 +74,7 @@ export function generatePlayers(myNumber, count = 14) {
     });
   }
 
+  // Sort: alive on top, most recent first within each group.
   out.sort((a, b) => {
     if (a.status !== b.status) return a.status === 'alive' ? -1 : 1;
     return a.seenAgo - b.seenAgo;
@@ -81,7 +82,7 @@ export function generatePlayers(myNumber, count = 14) {
   return out;
 }
 
-// "Time ago" label in English.
+// "Time ago" label.
 export function agoText(ms) {
   const m = Math.floor(ms / 60000);
   if (m < 1) return 'just now';
