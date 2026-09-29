@@ -1,13 +1,13 @@
 // Heart rate sensor via camera.
-// Strategy: sample a tiny frame, average (R - G) as blood-volume proxy,
+// Sample a tiny frame, average (R - G) as a blood-volume proxy,
 // remove the DC component, then find peaks in the last few seconds.
 
 const W = 32, H = 32;
 const FPS_MS = 33;              // ~30 fps
-const WINDOW_MS = 12000;
-const MIN_AMP = 0.5;
-const MIN_IV = 300;
-const MAX_IV = 2000;
+const WINDOW_MS = 12000;        // keep 12 s of raw samples
+const MIN_AMP = 0.5;            // threshold: is a finger actually present
+const MIN_IV = 300;             // 200 bpm upper bound
+const MAX_IV = 2000;            // 30 bpm lower bound
 
 export class PulseSensor extends EventTarget {
   constructor() {
@@ -76,10 +76,12 @@ export class PulseSensor extends EventTarget {
     while (this.samples.length && this.samples[0].t < cut) this.samples.shift();
     if (this.samples.length < 90) return;
 
+    // Rolling mean over ~1.2 s → removes DC drift.
     const win = this.samples.slice(-36);
     const mean = win.reduce((a, p) => a + p.v, 0) / win.length;
     const det = this.samples.map(p => ({ t: p.t, v: p.v - mean }));
 
+    // Analyse the last ~4 s only.
     const seg = det.slice(-120);
     let max = -Infinity, min = Infinity;
     for (const p of seg) { if (p.v > max) max = p.v; if (p.v < min) min = p.v; }
@@ -88,6 +90,7 @@ export class PulseSensor extends EventTarget {
 
     if (amp < MIN_AMP) { this._setBpm(0); return; }
 
+    // Peaks above 55% of the amplitude, local max over ±2 samples.
     const thr = min + amp * 0.55;
     const peaks = [];
     for (let i = 2; i < seg.length - 2; i++) {
@@ -102,6 +105,7 @@ export class PulseSensor extends EventTarget {
     this.peaks = peaks;
     if (peaks.length < 3) { this._setBpm(0); return; }
 
+    // Intervals between peaks, filtered to plausible range.
     const iv = [];
     for (let i = 1; i < peaks.length; i++) {
       const d = peaks[i].t - peaks[i-1].t;
@@ -109,6 +113,7 @@ export class PulseSensor extends EventTarget {
     }
     if (iv.length < 2) { this._setBpm(0); return; }
 
+    // Median is more robust than mean against missed/extra beats.
     iv.sort((a, b) => a - b);
     const med = iv[Math.floor(iv.length / 2)];
     this.intervals = iv;
