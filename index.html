@@ -1,1 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Connect Life</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
 
+  <!-- 1. RITUAL: finger on camera, ring fills up -->
+  <section id="s-ritual" class="screen active">
+    <video id="cam" playsinline muted></video>
+    <svg class="ring" viewBox="0 0 200 200">
+      <circle class="ring-bg" cx="100" cy="100" r="88"/>
+      <circle id="ring-fill" class="ring-fill" cx="100" cy="100" r="88"/>
+    </svg>
+    <div class="center">
+      <div id="ritual-bpm" class="bpm">--</div>
+      <div id="ritual-hint" class="hint">Place your finger on the camera</div>
+    </div>
+  </section>
+
+  <!-- 2. SIGNED: heartbeat keeps pulsing, no controls -->
+  <section id="s-signed" class="screen">
+    <div id="main-dot" class="dot"></div>
+    <div class="hint dim">You already signed.</div>
+    <button id="to-list" class="ghost">You are not alone</button>
+  </section>
+
+  <!-- 3. LIST: fake players, alive and dead -->
+  <section id="s-list" class="screen">
+    <header class="bar">
+      <button id="back-1" class="back">←</button>
+      <span class="title">LIST</span>
+    </header>
+    <div id="list" class="list"></div>
+  </section>
+
+  <!-- 4. CARD: single player detail -->
+  <section id="s-card" class="screen">
+    <header class="bar">
+      <button id="back-2" class="back">←</button>
+      <span class="title" id="card-num">----</span>
+    </header>
+    <div id="card-dot" class="dot"></div>
+    <div id="card-body" class="card"></div>
+  </section>
+
+</div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
