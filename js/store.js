@@ -1,4 +1,7 @@
 // The signature is persisted in three independent places.
+// localStorage dies on "clear site data"; cookies often survive;
+// IndexedDB lives in its own store. Reinstalling the PWA is not a problem.
+
 const KEY = 'cl.sig.v1';
 const COOKIE = 'cl_sig';
 const PHANTOM_KEY = 'cl.phantom.v1';
@@ -63,6 +66,7 @@ export async function load() {
   return null;
 }
 
+// Signature number = days since 2020-01-01. Lower = older player.
 const EPOCH = Date.UTC(2020, 0, 1);
 export const todayNumber = () =>
   Math.floor((Date.now() - EPOCH) / 864e5) + 1;
