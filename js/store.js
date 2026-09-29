@@ -1,6 +1,8 @@
 // The signature is persisted in three independent places.
 const KEY = 'cl.sig.v1';
 const COOKIE = 'cl_sig';
+const PHANTOM_KEY = 'cl.phantom.v1';
+const PHANTOM_COOKIE = 'cl_phantom';
 
 function cookieSet(name, val, days = 3650) {
   const d = new Date(Date.now() + days * 864e5).toUTCString();
@@ -66,3 +68,21 @@ export const todayNumber = () =>
   Math.floor((Date.now() - EPOCH) / 864e5) + 1;
 
 export const fmt = n => String(n).padStart(4, '0');
+
+/* ---------- Phantom row (once per 24 h) ---------- */
+
+export function getPhantomLast() {
+  try {
+    const v = localStorage.getItem(PHANTOM_KEY);
+    if (v) return parseInt(v, 10) || 0;
+  } catch (_) {}
+  const c = cookieGet(PHANTOM_COOKIE);
+  return c ? parseInt(c, 10) || 0 : 0;
+}
+
+export function setPhantomLast(t) {
+  try { localStorage.setItem(PHANTOM_KEY, String(t)); } catch (_) {}
+  cookieSet(PHANTOM_COOKIE, String(t));
+}
+
+export const DAY_MS = 24 * 3600 * 1000;
