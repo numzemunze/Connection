@@ -79,3 +79,18 @@ video{display:none}
 .card .k{color:#2e2e2e;font-size:11px;letter-spacing:.25em}
 .card .v{color:#8a8a8a;font-size:14px}
 .card .phrase{color:#5a5a5a;font-size:12px;font-style:italic;margin-top:18px;max-width:260px;line-height:1.8}
+/* phantom row: fades in, holds for ~1 s, fades out */
+.row.phantom{
+  color:#3a0d10;
+  border-bottom-color:#140506;
+  animation:phantom 1s ease forwards;
+  pointer-events:auto;
+}
+.row.phantom .r-num{color:#3a0d10;letter-spacing:.35em}
+.row.phantom .r-bpm{color:#2a090b}
+@keyframes phantom{
+  0%   {opacity:0}
+  25%  {opacity:1}
+  75%  {opacity:1}
+  100% {opacity:0}
+}
