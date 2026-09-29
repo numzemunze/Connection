@@ -15,7 +15,6 @@ let players = [];
 let cardPlayer = null;
 
 /* ---------- Replay a beat pattern as a pulsing dot ---------- */
-// NEW: optional sound. Each wrap = one beat.
 function pulseLoop(el, intervals, { sound: withSound = false } = {}) {
   let phase = 0, last = performance.now(), i = 0;
   let lastBeatAt = 0;
@@ -28,7 +27,7 @@ function pulseLoop(el, intervals, { sound: withSound = false } = {}) {
     if (phase >= 1) {
       phase -= 1;
       i++;
-      // NEW: fire the thump once per wrap, throttled to 250 ms minimum.
+      // Fire the thump once per wrap, throttled to 250 ms minimum.
       if (withSound && now - lastBeatAt > 250) {
         lastBeatAt = now;
         sound.beat(1);
@@ -49,7 +48,7 @@ async function startRitual() {
   const bpmEl = $('#ritual-bpm');
   const hint = $('#ritual-hint');
 
-  // NEW: unlock AudioContext on the first user gesture.
+  // Unlock AudioContext on the first user gesture.
   sound.init();
   sound.resume();
 
@@ -88,6 +87,7 @@ async function startRitual() {
 async function finishRitual(collected, bpm) {
   sensor.stop();
 
+  // Fall back to a synthesised rhythm if the camera didn't yield enough beats.
   const intervals = collected.length >= 8
     ? collected.slice(-24)
     : makeIntervals(bpm || 68, 24, Date.now() & 0xffff);
@@ -116,7 +116,6 @@ async function finishRitual(collected, bpm) {
 /* ---------- 2. SIGNED ---------- */
 function enterSigned() {
   show('#s-signed');
-  // NEW: the main dot now carries the beat audibly.
   pulseLoop($('#main-dot'), signature.intervals, { sound: true });
   $('#to-list').onclick = openList;
 }
@@ -146,7 +145,7 @@ function openList() {
     list.appendChild(row);
   }
 
-  // NEW: phantom row, at most once per 24 h.
+  // Phantom row, at most once per 24 h.
   const now = Date.now();
   if (now - store.getPhantomLast() > store.DAY_MS) {
     store.setPhantomLast(now);
@@ -157,7 +156,7 @@ function openList() {
   show('#s-list');
 }
 
-/* ---------- NEW: phantom row ---------- */
+/* ---------- Phantom row ---------- */
 function spawnPhantom(list) {
   if (!document.body.contains(list)) return;
   const row = document.createElement('div');
